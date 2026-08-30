@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maxwell's Interactive Web Map for Foumbot</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100vh; width: 100vw; font-family: Arial, sans-serif; overflow: hidden; }
+        
+        #header {
+            background: #1a252f;
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        #controls {
+            background: #f4f4f4;
+            padding: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            justify-content: center;
+        }
+
+        input { padding: 6px; width: 140px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
+        button { padding: 6px 10px; border: none; border-radius: 4px; background: #27ae60; color: white; font-size: 11px; font-weight: bold; cursor: pointer; }
+        .btn-loc { background: #2980b9; }
+
+        #map {
+            width: 100%;
+            height: calc(100vh - 85px);
+            background-color: #e5e3df; /* Pre-loader background color */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <b>Maxwell's Web Map for Foumbot</b>
+    </div>
+
+    <div id="controls">
+        <input type="text" id="searchInput" placeholder="Search Foumbot...">
+        <button onclick="searchLocation()">Search</button>
+        <button class="btn-loc" onclick="getUserLocation()">My Location</button>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Initialize Map
+        const map = L.map('map').setView([5.5085, 10.6311], 14);
+
+        // Uses CARTO Voyager HTTPS tiles (Loads instantly in iFrames and mobile CodePen)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Foumbot Locations
+        const locations = [
+            { name: "COSBA", lat: 5.5110, lng: 10.6330, desc: "College Synergie Bilingual Academic" },
+            { name: "Marie Rivier", lat: 5.5050, lng: 10.6280, desc: "College Marie Rivier" },
+            { name: "Lycée Bilingue de Foumbot", lat: 5.5150, lng: 10.6360, desc: "Public Bilingual High School" },
+            { name: "Central Market Foumbot", lat: 5.5080, lng: 10.6310, desc: "Main Market" },
+            { name: "Foumbot District Hospital", lat: 5.5120, lng: 10.6290, desc: "Main Hospital" }
+        ];
+
+        locations.forEach(loc => {
+            L.marker([loc.lat, loc.lng]).addTo(map)
+                .bindPopup(`<b>${loc.name}</b><br>${loc.desc}`);
+        });
+
+        function searchLocation() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            const target = locations.find(l => l.name.toLowerCase().includes(query));
+            if (target) {
+                map.setView([target.lat, target.lng], 16);
+            } else {
+                alert("Location not found.");
+            }
+        }
+
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(p => {
+                    const pos = [p.coords.latitude, p.coords.longitude];
+                    L.marker(pos).addTo(map).bindPopup("You are here").openPopup();
+                    map.setView(pos, 15);
+                });
+            }
+        }
+
+        // Fixes the blank screen bug on mobile render
+        window.onload = function() {
+            setTimeout(function() {
+                map.invalidateSize();
+            }, 500);
+        };
+    </script>
+</body>
+</html>
