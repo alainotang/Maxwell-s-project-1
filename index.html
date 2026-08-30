@@ -19,16 +19,16 @@
             font-family: Arial, sans-serif;
         }
         #map {
-            height: calc(100vh - 65px);
+            height: calc(100vh - 70px);
             width: 100vw;
-            margin-top: 65px;
+            margin-top: 70px;
         }
         .header-banner {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 65px;
+            height: 70px;
             background: #1a252f;
             color: #ffffff;
             display: flex;
@@ -37,17 +37,31 @@
             padding: 0 15px;
             z-index: 2000;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            gap: 10px;
         }
         .header-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: bold;
             color: #f1c40f;
             line-height: 1.2;
         }
         .header-subtitle {
-            font-size: 11px;
+            font-size: 10px;
             color: #bdc3c7;
             margin-top: 2px;
+        }
+        .controls-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .search-input {
+            padding: 7px 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 12px;
+            outline: none;
+            width: 160px;
         }
         .locate-btn {
             background: #27ae60;
@@ -78,7 +92,10 @@
             <div class="header-title">Maxwell Damian Interactive Foumbot Map</div>
             <div class="header-subtitle">Find Your Way In and Out</div>
         </div>
-        <button class="locate-btn" onclick="locateUser()">📍 My Location</button>
+        <div class="controls-wrapper">
+            <input type="text" id="searchInput" class="search-input" placeholder="Search area/carrefour..." onkeyup="searchLocation()">
+            <button class="locate-btn" onclick="locateUser()">📍 My Location</button>
+        </div>
     </div>
 
     <div id="map"></div>
@@ -98,6 +115,9 @@
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
+
+        // Registry array to hold searchable locations
+        const searchRegistry = [];
 
         // 3. User Geolocation Handling
         let userMarker, userCircle;
@@ -128,7 +148,7 @@
                         map.setView([lat, lng], 16);
                     },
                     (error) => {
-                        alert("Location access failed: Please make sure GPS/Location services are enabled on your device and browser permissions are granted.");
+                        alert("Location access failed: Please ensure location/GPS services are enabled on your device and browser permissions are allowed.");
                     },
                     { enableHighAccuracy: true, timeout: 10000 }
                 );
@@ -137,7 +157,6 @@
             }
         }
 
-        // Trigger location query on startup
         locateUser();
 
         // 4. Quarters & Neighborhoods
@@ -159,7 +178,7 @@
         ];
 
         quarters.forEach(q => {
-            L.circle([q.lat, q.lng], {
+            const layer = L.circle([q.lat, q.lng], {
                 color: '#2980b9',
                 fillColor: '#3498db',
                 fillOpacity: 0.2,
@@ -168,6 +187,7 @@
                 <b>Quarter: ${q.name}</b><br>${q.desc}<br>
                 <div class="popup-coords">📍 ${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}</div>
             `);
+            searchRegistry.push({ name: q.name, lat: q.lat, lng: q.lng, layer: layer });
         });
 
         // 5. Carrefours (Intersections)
@@ -183,7 +203,7 @@
         ];
 
         carrefours.forEach(c => {
-            L.circleMarker([c.lat, c.lng], {
+            const layer = L.circleMarker([c.lat, c.lng], {
                 radius: 8,
                 fillColor: "#e67e22",
                 color: "#d35400",
@@ -193,6 +213,7 @@
                 <b>🚥 ${c.name}</b><br>${c.desc}<br>
                 <div class="popup-coords">📍 ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div>
             `);
+            searchRegistry.push({ name: c.name, lat: c.lat, lng: c.lng, layer: layer });
         });
 
         // 6. Bus Stations & Travel Agencies
@@ -204,13 +225,26 @@
         ];
 
         busStations.forEach(station => {
-            L.marker([station.lat, station.lng])
+            const layer = L.marker([station.lat, station.lng])
                 .addTo(map)
                 .bindPopup(`
                     <b>🚌 ${station.name}</b><br>${station.details}<br>
                     <div class="popup-coords">📍 ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</div>
                 `);
+            searchRegistry.push({ name: station.name, lat: station.lat, lng: station.lng, layer: layer });
         });
+
+        // Search Functionality
+        function searchLocation() {
+            const query = document.getElementById('searchInput').value.toLowerCase().trim();
+            if (!query) return;
+
+            const match = searchRegistry.find(item => item.name.toLowerCase().includes(query));
+            if (match) {
+                map.setView([match.lat, match.lng], 16);
+                match.layer.openPopup();
+            }
+        }
     </script>
 </body>
 </html>
