@@ -42,13 +42,19 @@
             font-size: 12px;
             color: #666;
         }
+        .popup-coords {
+            font-size: 11px;
+            color: #d9534f;
+            font-weight: bold;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
 
     <div class="info-box">
         <h2>Foumbot Interactive Map</h2>
-        <p>Quarters & Bus Stations Guide</p>
+        <p>Quarters, Carrefours & Bus Stations</p>
     </div>
 
     <div id="map"></div>
@@ -56,23 +62,31 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Initialize map centered directly on Foumbot
-        const map = L.map('map').setView([5.5083, 10.6308], 14);
+        // 1. Center Map directly on Foumbot town center
+        const map = L.map('map').setView([5.5083, 10.6308], 13);
 
-        // 2. Add OpenStreetMap Tile Layer
+        // 2. Add OpenStreetMap Tiles
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // 3. Foumbot Quarters (Neighborhood Zones)
+        // 3. Quarters (Cartiers) & Key Neighborhood Locations
         const quarters = [
-            { name: "Foumbot Centre / Ville", lat: 5.5083, lng: 10.6308 },
-            { name: "Foumbot-Mancha", lat: 5.5120, lng: 10.6250 },
-            { name: "Koupara", lat: 5.4980, lng: 10.6350 },
-            { name: "Mangoum", lat: 5.4850, lng: 10.6120 },
-            { name: "Ngouen", lat: 5.5200, lng: 10.6400 },
-            { name: "Kougham", lat: 5.5150, lng: 10.6150 }
+            { name: "Foumbot Centre / Ville", lat: 5.5083, lng: 10.6308, desc: "Urban town center and main commercial strip" },
+            { name: "Quartier Ngouongouo (Nhoungou)", lat: 5.5100, lng: 10.6280, desc: "Dense residential quarter in West Foumbot" },
+            { name: "Quartier Foumbot-Mancha", lat: 5.5120, lng: 10.6250, desc: "North-western residential zone" },
+            { name: "Quartier Koupara", lat: 5.4980, lng: 10.6350, desc: "Southern entry area along N6" },
+            { name: "Quartier Mangoum", lat: 5.4850, lng: 10.6120, desc: "Agricultural market hub area" },
+            { name: "Quartier Ngouen", lat: 5.5200, lng: 10.6400, desc: "North-east quarter near surrounding fields" },
+            { name: "Quartier Kougham", lat: 5.5150, lng: 10.6150, desc: "Western district along Massangam axis" },
+            { name: "Quartier Baigom", lat: 5.5350, lng: 10.6500, desc: "Outer northern village district" },
+            { name: "Quartier Fosset", lat: 5.4920, lng: 10.6220, desc: "South-western residential quarter" },
+            { name: "Quartier Njimbouot", lat: 5.5030, lng: 10.6340, desc: "Central-south neighborhood" },
+            { name: "Quartier Kompani", lat: 5.5250, lng: 10.6200, desc: "North-western residential locality" },
+            { name: "Quartier Mbanjou", lat: 5.4950, lng: 10.6450, desc: "South-eastern neighborhood" },
+            { name: "Quartier Marché Central", lat: 5.5065, lng: 10.6310, desc: "Central food and trade market" },
+            { name: "Quartier Administrative", lat: 5.5040, lng: 10.6290, desc: "Location of Sous-Préfecture and Town Hall" }
         ];
 
         quarters.forEach(q => {
@@ -80,22 +94,57 @@
                 color: '#2b5797',
                 fillColor: '#3388ff',
                 fillOpacity: 0.25,
-                radius: 400
-            }).addTo(map).bindPopup(`<b>Quarter:</b> ${q.name}`);
+                radius: 350
+            }).addTo(map).bindPopup(`
+                <b>Quarter: ${q.name}</b><br>
+                ${q.desc}<br>
+                <div class="popup-coords">📍 Location: ${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}</div>
+            `);
         });
 
-        // 4. Bus Stations & Travel Agencies
+        // 4. Major Carrefours (Key Intersections)
+        const carrefours = [
+            { name: "Carrefour Marché Central", lat: 5.5070, lng: 10.6312, desc: "Busy main junction by the central market" },
+            { name: "Carrefour Sous-Préfecture", lat: 5.5042, lng: 10.6295, desc: "Administrative zone junction" },
+            { name: "Carrefour Cimencam", lat: 5.5110, lng: 10.6290, desc: "Major landmark junction along the northern commercial strip" },
+            { name: "Carrefour Koupara (N6)", lat: 5.5000, lng: 10.6340, desc: "Key entry intersection from Bafoussam" },
+            { name: "Carrefour Mangoum", lat: 5.4880, lng: 10.6150, desc: "Junction leading to the agricultural trade market" },
+            { name: "Carrefour Ngouongouo", lat: 5.5095, lng: 10.6275, desc: "Central junction for Quartier Ngouongouo" },
+            { name: "Carrefour Hospital / Santé", lat: 5.5055, lng: 10.6270, desc: "Inter-street junction near the district hospital area" },
+            { name: "Carrefour Station Total / N6", lat: 5.5085, lng: 10.6325, desc: "Primary fueling and highway transit point" }
+        ];
+
+        carrefours.forEach(c => {
+            L.circleMarker([c.lat, c.lng], {
+                radius: 8,
+                fillColor: "#ff7800",
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(map).bindPopup(`
+                <b>🚥 ${c.name}</b><br>
+                ${c.desc}<br>
+                <div class="popup-coords">📍 Location: ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div>
+            `);
+        });
+
+        // 5. Bus Stations & Travel Agencies Locations
         const busStations = [
-            { name: "Gare Routière Principal de Foumbot", lat: 5.5075, lng: 10.6320, details: "Main central taxi & minibus park" },
+            { name: "Gare Routière Principale", lat: 5.5075, lng: 10.6320, details: "Main central taxi & minibus park" },
             { name: "Musango Bus Terminal", lat: 5.5090, lng: 10.6300, details: "Inter-city travel agency (Buea, Douala, Yaoundé)" },
-            { name: "General Express Stop (N6 Highway)", lat: 5.5060, lng: 10.6315, details: "Main transit stop along Bafoussam - Foumban route" },
-            { name: "Gare Routière de Mangoum", lat: 5.4870, lng: 10.6140, details: "Local market bus and transport stop" }
+            { name: "General Express Transit Stop", lat: 5.5060, lng: 10.6315, details: "Regional bus stop along Bafoussam - Foumban N6 highway" },
+            { name: "Gare Routière de Mangoum", lat: 5.4870, lng: 10.6140, details: "Local market bus and rural transport park" }
         ];
 
         busStations.forEach(station => {
             L.marker([station.lat, station.lng])
                 .addTo(map)
-                .bindPopup(`<b>🚌 ${station.name}</b><br>${station.details}`);
+                .bindPopup(`
+                    <b>🚌 ${station.name}</b><br>
+                    ${station.details}<br>
+                    <div class="popup-coords">📍 Location: ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</div>
+                `);
         });
     </script>
 </body>
