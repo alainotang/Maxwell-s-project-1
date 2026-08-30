@@ -6,6 +6,7 @@
     <title>Maxwell Damian Interactive Foumbot Map: Find Your Way In and Out</title>
     
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     
     <style>
         * {
@@ -83,6 +84,11 @@
             font-weight: bold;
             margin-top: 4px;
         }
+        .leaflet-routing-container {
+            font-size: 12px;
+            max-width: 280px;
+            opacity: 0.95;
+        }
     </style>
 </head>
 <body>
@@ -101,6 +107,8 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    
     <script>
         // Force HTTPS for GPS permissions
         if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
@@ -117,8 +125,20 @@
         }).addTo(map);
 
         const searchRegistry = [];
+        let userLatLng = null;
 
-        // 3. User Geolocation Handling
+        // 3. Routing Control Setup
+        const routingControl = L.Routing.control({
+            waypoints: [],
+            routeWhileDragging: true,
+            lineOptions: {
+                styles: [{ color: '#0066ff', weight: 6, opacity: 0.8 }]
+            },
+            show: true,
+            collapsible: true
+        }).addTo(map);
+
+        // 4. User Geolocation Handling
         let userMarker, userCircle;
 
         function locateUser() {
@@ -128,6 +148,7 @@
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
                         const accuracy = position.coords.accuracy;
+                        userLatLng = L.latLng(lat, lng);
 
                         if (userMarker) {
                             map.removeLayer(userMarker);
@@ -147,7 +168,7 @@
                         map.setView([lat, lng], 16);
                     },
                     (error) => {
-                        alert("Location access failed: Please ensure location/GPS services are enabled on your device and browser permissions are allowed.");
+                        alert("Location access failed: Please ensure GPS services are enabled on your device.");
                     },
                     { enableHighAccuracy: true, timeout: 10000 }
                 );
@@ -158,7 +179,19 @@
 
         locateUser();
 
-        // 4. Quarters & Neighborhoods
+        // Helper function to calculate directions from User Location to Target
+        window.getDirectionsTo = function(targetLat, targetLng) {
+            if (!userLatLng) {
+                alert("Please click '📍 My Location' first to enable your starting GPS position.");
+                return;
+            }
+            routingControl.setWaypoints([
+                userLatLng,
+                L.latLng(targetLat, targetLng)
+            ]);
+        };
+
+        // 5. Quarters & Neighborhoods
         const quarters = [
             { name: "Foumbot Centre / Ville", lat: 5.5083, lng: 10.6308, desc: "Urban town center" },
             { name: "Quartier Ngouongouo (Nhoungou)", lat: 5.5100, lng: 10.6280, desc: "Dense residential quarter in West Foumbot" },
@@ -184,12 +217,13 @@
                 radius: 350
             }).addTo(map).bindPopup(`
                 <b>Quarter: ${q.name}</b><br>${q.desc}<br>
-                <div class="popup-coords">📍 ${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}</div>
+                <div class="popup-coords">📍 ${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}</div><br>
+                <button onclick="getDirectionsTo(${q.lat}, ${q.lng})" style="margin-top:5px; padding:4px 8px; background:#007bff; color:#fff; border:none; border-radius:3px; cursor:pointer;">🚗 Get Directions</button>
             `);
             searchRegistry.push({ name: q.name, lat: q.lat, lng: q.lng, layer: layer });
         });
 
-        // 5. Carrefours (Intersections)
+        // 6. Carrefours (Intersections)
         const carrefours = [
             { name: "Carrefour Marché Central", lat: 5.5070, lng: 10.6312, desc: "Main central junction" },
             { name: "Carrefour Sous-Préfecture", lat: 5.5042, lng: 10.6295, desc: "Administrative junction" },
@@ -210,12 +244,13 @@
                 fillOpacity: 0.9
             }).addTo(map).bindPopup(`
                 <b>🚥 ${c.name}</b><br>${c.desc}<br>
-                <div class="popup-coords">📍 ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div>
+                <div class="popup-coords">📍 ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div><br>
+                <button onclick="getDirectionsTo(${c.lat}, ${c.lng})" style="margin-top:5px; padding:4px 8px; background:#007bff; color:#fff; border:none; border-radius:3px; cursor:pointer;">🚗 Get Directions</button>
             `);
             searchRegistry.push({ name: c.name, lat: c.lat, lng: c.lng, layer: layer });
         });
 
-        // 6. Bus Stations & Travel Agencies
+        // 7. Bus Stations & Travel Agencies
         const busStations = [
             { name: "Gare Routière Principale", lat: 5.5075, lng: 10.6320, details: "Main central taxi & minibus park" },
             { name: "Musango Bus Terminal", lat: 5.5090, lng: 10.6300, details: "Inter-city travel agency" },
@@ -228,7 +263,8 @@
                 .addTo(map)
                 .bindPopup(`
                     <b>🚌 ${station.name}</b><br>${station.details}<br>
-                    <div class="popup-coords">📍 ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</div>
+                    <div class="popup-coords">📍 ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</div><br>
+                    <button onclick="getDirectionsTo(${station.lat}, ${station.lng})" style="margin-top:5px; padding:4px 8px; background:#007bff; color:#fff; border:none; border-radius:3px; cursor:pointer;">🚗 Get Directions</button>
                 `);
             searchRegistry.push({ name: station.name, lat: station.lat, lng: station.lng, layer: layer });
         });
@@ -246,4 +282,5 @@
         }
     </script>
 </body>
-</html>
+            </html>
+                                                                               
