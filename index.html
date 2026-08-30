@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Maxwell Damian Interactive Foumbot Map: Find Your Way In and Out</title>
     
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet Routing Machine CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
     
     <style>
@@ -53,30 +55,32 @@
         .controls-wrapper {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             width: 100%;
         }
         .search-input {
-            padding: 8px 12px;
+            padding: 8px 10px;
             border-radius: 5px;
             border: 1px solid #ccc;
-            font-size: 13px;
+            font-size: 12px;
             outline: none;
             flex-grow: 1;
         }
-        .locate-btn {
-            background: #27ae60;
+        .btn {
             color: #fff;
             border: none;
-            padding: 8px 12px;
+            padding: 8px 10px;
             border-radius: 5px;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
             white-space: nowrap;
         }
-        .locate-btn:active {
-            background: #1e8449;
+        .locate-btn {
+            background: #27ae60;
+        }
+        .clear-btn {
+            background: #e74c3c;
         }
         .popup-coords {
             font-size: 11px;
@@ -84,10 +88,25 @@
             font-weight: bold;
             margin-top: 4px;
         }
+        .dir-btn {
+            margin-top: 8px;
+            padding: 6px 10px;
+            background: #2980b9;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            width: 100%;
+        }
         .leaflet-routing-container {
             font-size: 12px;
-            max-width: 280px;
+            max-width: 260px;
+            background: #ffffff;
             opacity: 0.95;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
     </style>
 </head>
@@ -99,16 +118,19 @@
             <div class="header-subtitle">Find Your Way In and Out</div>
         </div>
         <div class="controls-wrapper">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search quarter or carrefour..." onkeyup="searchLocation()">
-            <button class="locate-btn" onclick="locateUser()">📍 My Location</button>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search area or carrefour..." onkeyup="searchLocation()">
+            <button class="btn locate-btn" onclick="locateUser()">📍 My Location</button>
+            <button class="btn clear-btn" onclick="clearRoute()">❌ Clear</button>
         </div>
     </div>
 
     <div id="map"></div>
 
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Routing Machine JS -->
     <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
-    
+
     <script>
         // Force HTTPS for GPS permissions
         if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
@@ -125,18 +147,45 @@
         }).addTo(map);
 
         const searchRegistry = [];
-        let userLatLng = null;
+        
+        // Default start point: Foumbot Town Centre (if GPS is off)
+        const defaultStart = L.latLng(5.5083, 10.6308);
+        let userLatLng = defaultStart;
 
         // 3. Routing Control Setup
-        const routingControl = L.Routing.control({
-            waypoints: [],
-            routeWhileDragging: true,
-            lineOptions: {
-                styles: [{ color: '#0066ff', weight: 6, opacity: 0.8 }]
-            },
-            show: true,
-            collapsible: true
-        }).addTo(map);
+        let routingControl = null;
+
+        function drawRoute(targetLat, targetLng) {
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            const destination = L.latLng(targetLat, targetLng);
+
+            routingControl = L.Routing.control({
+                waypoints: [userLatLng, destination],
+                routeWhileDragging: true,
+                lineOptions: {
+                    styles: [{ color: '#0066ff', weight: 6, opacity: 0.8 }]
+                },
+                show: true,
+                collapsible: true,
+                createMarker: function(i, wp) {
+                    if (i === 0) {
+                        return L.marker(wp.latLng).bindPopup("<b>🚩 Route Start Point</b>");
+                    } else {
+                        return L.marker(wp.latLng).bindPopup("<b>🏁 Route Destination</b>");
+                    }
+                }
+            }).addTo(map);
+        }
+
+        function clearRoute() {
+            if (routingControl) {
+                map.removeControl(routingControl);
+                routingControl = null;
+            }
+        }
 
         // 4. User Geolocation Handling
         let userMarker, userCircle;
@@ -168,27 +217,18 @@
                         map.setView([lat, lng], 16);
                     },
                     (error) => {
-                        alert("Location access failed: Please ensure GPS services are enabled on your device.");
+                        alert("GPS access was not detected. The map will use Foumbot Town Centre as your starting point for directions.");
                     },
                     { enableHighAccuracy: true, timeout: 10000 }
                 );
-            } else {
-                alert("Geolocation is not supported by your browser.");
             }
         }
 
         locateUser();
 
-        // Helper function to calculate directions from User Location to Target
+        // Helper function triggered by popup button
         window.getDirectionsTo = function(targetLat, targetLng) {
-            if (!userLatLng) {
-                alert("Please click '📍 My Location' first to enable your starting GPS position.");
-                return;
-            }
-            routingControl.setWaypoints([
-                userLatLng,
-                L.latLng(targetLat, targetLng)
-            ]);
+            drawRoute(targetLat, targetLng);
         };
 
         // 5. Quarters & Neighborhoods
@@ -217,8 +257,8 @@
                 radius: 350
             }).addTo(map).bindPopup(`
                 <b>Quarter: ${q.name}</b><br>${q.desc}<br>
-                <div class="popup-coords">📍 ${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}</div><br>
-                <button onclick="getDirectionsTo(${q.lat}, ${q.lng})" style="margin-top:5px; padding:4px 8px; background:#007bff; color:#fff; border:none; border-radius:3px; cursor:pointer;">🚗 Get Directions</button>
+                <div class="popup-coords">📍 ${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}</div>
+                <button class="dir-btn" onclick="getDirectionsTo(${q.lat}, ${q.lng})">🚗 Get Directions</button>
             `);
             searchRegistry.push({ name: q.name, lat: q.lat, lng: q.lng, layer: layer });
         });
@@ -244,8 +284,8 @@
                 fillOpacity: 0.9
             }).addTo(map).bindPopup(`
                 <b>🚥 ${c.name}</b><br>${c.desc}<br>
-                <div class="popup-coords">📍 ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div><br>
-                <button onclick="getDirectionsTo(${c.lat}, ${c.lng})" style="margin-top:5px; padding:4px 8px; background:#007bff; color:#fff; border:none; border-radius:3px; cursor:pointer;">🚗 Get Directions</button>
+                <div class="popup-coords">📍 ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div>
+                <button class="dir-btn" onclick="getDirectionsTo(${c.lat}, ${c.lng})">🚗 Get Directions</button>
             `);
             searchRegistry.push({ name: c.name, lat: c.lat, lng: c.lng, layer: layer });
         });
@@ -263,8 +303,8 @@
                 .addTo(map)
                 .bindPopup(`
                     <b>🚌 ${station.name}</b><br>${station.details}<br>
-                    <div class="popup-coords">📍 ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</div><br>
-                    <button onclick="getDirectionsTo(${station.lat}, ${station.lng})" style="margin-top:5px; padding:4px 8px; background:#007bff; color:#fff; border:none; border-radius:3px; cursor:pointer;">🚗 Get Directions</button>
+                    <div class="popup-coords">📍 ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</div>
+                    <button class="dir-btn" onclick="getDirectionsTo(${station.lat}, ${station.lng})">🚗 Get Directions</button>
                 `);
             searchRegistry.push({ name: station.name, lat: station.lat, lng: station.lng, layer: layer });
         });
@@ -282,5 +322,4 @@
         }
     </script>
 </body>
-            </html>
-                                                                               
+</html>
