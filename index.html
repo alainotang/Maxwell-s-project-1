@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maxwell Damian Foumbot Map</title>
+    <title>Maxwell Damien Interactive Foam Boat Map: Find Your Way In and Out</title>
     
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     
     <style>
@@ -20,48 +19,53 @@
             font-family: Arial, sans-serif;
         }
         #map {
-            height: 100vh;
+            height: calc(100vh - 65px);
             width: 100vw;
+            margin-top: 65px;
         }
-        .info-box {
-            position: absolute;
-            top: 10px;
-            left: 50px;
-            z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 10px 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        .header-banner {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 65px;
+            background: #1a252f;
+            color: #ffffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 15px;
+            z-index: 2000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
-        .info-box h2 {
-            font-size: 16px;
-            color: #333;
-            margin-bottom: 4px;
+        .header-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: #f1c40f;
+            line-height: 1.2;
         }
-        .info-box p {
-            font-size: 12px;
-            color: #666;
+        .header-subtitle {
+            font-size: 11px;
+            color: #bdc3c7;
+            margin-top: 2px;
         }
         .locate-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: #007bff;
+            background: #27ae60;
             color: #fff;
             border: none;
-            padding: 10px 14px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 5px;
             font-weight: bold;
+            font-size: 12px;
             cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            white-space: nowrap;
         }
-        .locate-btn:hover {
-            background: #0056b3;
+        .locate-btn:active {
+            background: #1e8449;
         }
         .popup-coords {
             font-size: 11px;
-            color: #d9534f;
+            color: #e74c3c;
             font-weight: bold;
             margin-top: 4px;
         }
@@ -69,19 +73,24 @@
 </head>
 <body>
 
-    <div class="info-box">
-        <h2>Foumbot Interactive Map</h2>
-        <p>Quarters, Carrefours & Bus Stations</p>
+    <div class="header-banner">
+        <div>
+            <div class="header-title">Maxwell Damien Interactive Foam Boat Map</div>
+            <div class="header-subtitle">Find Your Way In and Out</div>
+        </div>
+        <button class="locate-btn" onclick="locateUser()">📍 My Location</button>
     </div>
-
-    <button class="locate-btn" onclick="locateUser()">📍 Find My Location</button>
 
     <div id="map"></div>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 1. Center Map directly on Foumbot town center
+        // Force HTTPS for GPS permissions
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            location.replace(`https:${location.href.substring(location.protocol.length)}`);
+        }
+
+        // 1. Initialize map centered on Foumbot
         const map = L.map('map').setView([5.5083, 10.6308], 13);
 
         // 2. Add OpenStreetMap Tiles
@@ -90,114 +99,116 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // 3. User Geolocation Variables
+        // 3. User Geolocation Handling
         let userMarker, userCircle;
 
         function locateUser() {
-            map.locate({setView: true, maxZoom: 16});
-        }
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        const accuracy = position.coords.accuracy;
 
-        function onLocationFound(e) {
-            const radius = e.accuracy / 2;
+                        if (userMarker) {
+                            map.removeLayer(userMarker);
+                            map.removeLayer(userCircle);
+                        }
 
-            if (userMarker) {
-                map.removeLayer(userMarker);
-                map.removeLayer(userCircle);
+                        userMarker = L.marker([lat, lng]).addTo(map)
+                            .bindPopup(`<b>📍 You are here!</b><br>Accuracy radius: ${Math.round(accuracy)}m`).openPopup();
+
+                        userCircle = L.circle([lat, lng], {
+                            color: '#2980b9',
+                            fillColor: '#3498db',
+                            fillOpacity: 0.3,
+                            radius: accuracy
+                        }).addTo(map);
+
+                        map.setView([lat, lng], 16);
+                    },
+                    (error) => {
+                        alert("Location access failed: Please make sure GPS/Location services are enabled on your device and browser permissions are granted.");
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser.");
             }
-
-            userMarker = L.marker(e.latlng).addTo(map)
-                .bindPopup("<b> You are here!</b><br>Accuracy: " + Math.round(radius) + " meters").openPopup();
-
-            userCircle = L.circle(e.latlng, radius, {
-                color: '#1e90ff',
-                fillColor: '#1e90ff',
-                fillOpacity: 0.2
-            }).addTo(map);
         }
 
-        function onLocationError(e) {
-            alert("Could not get your location. Please enable Location/GPS permission in your web browser settings.");
-        }
-
-        map.on('locationfound', onLocationFound);
-        map.on('locationerror', onLocationError);
-
-        // Automatically trigger location detection on load
+        // Trigger location query on startup
         locateUser();
 
-        // 4. Quarters (Cartiers) & Key Neighborhood Locations
+        // 4. Quarters & Neighborhoods
         const quarters = [
-            { name: "Foumbot Centre / Ville", lat: 5.5083, lng: 10.6308, desc: "Urban town center and main commercial strip" },
+            { name: "Foumbot Centre / Ville", lat: 5.5083, lng: 10.6308, desc: "Urban town center" },
             { name: "Quartier Ngouongouo (Nhoungou)", lat: 5.5100, lng: 10.6280, desc: "Dense residential quarter in West Foumbot" },
             { name: "Quartier Foumbot-Mancha", lat: 5.5120, lng: 10.6250, desc: "North-western residential zone" },
             { name: "Quartier Koupara", lat: 5.4980, lng: 10.6350, desc: "Southern entry area along N6" },
             { name: "Quartier Mangoum", lat: 5.4850, lng: 10.6120, desc: "Agricultural market hub area" },
-            { name: "Quartier Ngouen", lat: 5.5200, lng: 10.6400, desc: "North-east quarter near surrounding fields" },
-            { name: "Quartier Kougham", lat: 5.5150, lng: 10.6150, desc: "Western district along Massangam axis" },
+            { name: "Quartier Ngouen", lat: 5.5200, lng: 10.6400, desc: "North-east quarter" },
+            { name: "Quartier Kougham", lat: 5.5150, lng: 10.6150, desc: "Western district" },
             { name: "Quartier Baigom", lat: 5.5350, lng: 10.6500, desc: "Outer northern village district" },
-            { name: "Quartier Fosset", lat: 5.4920, lng: 10.6220, desc: "South-western residential quarter" },
+            { name: "Quartier Fosset", lat: 5.4920, lng: 10.6220, desc: "South-western quarter" },
             { name: "Quartier Njimbouot", lat: 5.5030, lng: 10.6340, desc: "Central-south neighborhood" },
-            { name: "Quartier Kompani", lat: 5.5250, lng: 10.6200, desc: "North-western residential locality" },
+            { name: "Quartier Kompani", lat: 5.5250, lng: 10.6200, desc: "North-western district" },
             { name: "Quartier Mbanjou", lat: 5.4950, lng: 10.6450, desc: "South-eastern neighborhood" },
-            { name: "Quartier Marché Central", lat: 5.5065, lng: 10.6310, desc: "Central food and trade market" },
-            { name: "Quartier Administrative", lat: 5.5040, lng: 10.6290, desc: "Location of Sous-Préfecture and Town Hall" }
+            { name: "Quartier Marché Central", lat: 5.5065, lng: 10.6310, desc: "Central trade market" },
+            { name: "Quartier Administrative", lat: 5.5040, lng: 10.6290, desc: "Sous-Préfecture and Town Hall" }
         ];
 
         quarters.forEach(q => {
             L.circle([q.lat, q.lng], {
-                color: '#2b5797',
-                fillColor: '#3388ff',
-                fillOpacity: 0.25,
+                color: '#2980b9',
+                fillColor: '#3498db',
+                fillOpacity: 0.2,
                 radius: 350
             }).addTo(map).bindPopup(`
-                <b>Quarter: ${q.name}</b><br>
-                ${q.desc}<br>
-                <div class="popup-coords">📍 Location: ${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}</div>
+                <b>Quarter: ${q.name}</b><br>${q.desc}<br>
+                <div class="popup-coords">📍 ${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}</div>
             `);
         });
 
-        // 5. Major Carrefours (Key Intersections)
+        // 5. Carrefours (Intersections)
         const carrefours = [
-            { name: "Carrefour Marché Central", lat: 5.5070, lng: 10.6312, desc: "Busy main junction by the central market" },
-            { name: "Carrefour Sous-Préfecture", lat: 5.5042, lng: 10.6295, desc: "Administrative zone junction" },
-            { name: "Carrefour Cimencam", lat: 5.5110, lng: 10.6290, desc: "Major landmark junction along the northern commercial strip" },
-            { name: "Carrefour Koupara (N6)", lat: 5.5000, lng: 10.6340, desc: "Key entry intersection from Bafoussam" },
-            { name: "Carrefour Mangoum", lat: 5.4880, lng: 10.6150, desc: "Junction leading to the agricultural trade market" },
-            { name: "Carrefour Ngouongouo", lat: 5.5095, lng: 10.6275, desc: "Central junction for Quartier Ngouongouo" },
-            { name: "Carrefour Hospital / Santé", lat: 5.5055, lng: 10.6270, desc: "Inter-street junction near the district hospital area" },
-            { name: "Carrefour Station Total / N6", lat: 5.5085, lng: 10.6325, desc: "Primary fueling and highway transit point" }
+            { name: "Carrefour Marché Central", lat: 5.5070, lng: 10.6312, desc: "Main central junction" },
+            { name: "Carrefour Sous-Préfecture", lat: 5.5042, lng: 10.6295, desc: "Administrative junction" },
+            { name: "Carrefour Cimencam", lat: 5.5110, lng: 10.6290, desc: "Commercial strip junction" },
+            { name: "Carrefour Koupara (N6)", lat: 5.5000, lng: 10.6340, desc: "Southern entry intersection" },
+            { name: "Carrefour Mangoum", lat: 5.4880, lng: 10.6150, desc: "Agricultural trade junction" },
+            { name: "Carrefour Ngouongouo", lat: 5.5095, lng: 10.6275, desc: "Ngouongouo quarter junction" },
+            { name: "Carrefour Hospital / Santé", lat: 5.5055, lng: 10.6270, desc: "District hospital junction" },
+            { name: "Carrefour Station Total / N6", lat: 5.5085, lng: 10.6325, desc: "Highway fuel station junction" }
         ];
 
         carrefours.forEach(c => {
             L.circleMarker([c.lat, c.lng], {
                 radius: 8,
-                fillColor: "#ff7800",
-                color: "#000",
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0.8
+                fillColor: "#e67e22",
+                color: "#d35400",
+                weight: 2,
+                fillOpacity: 0.9
             }).addTo(map).bindPopup(`
-                <b>🚥 ${c.name}</b><br>
-                ${c.desc}<br>
-                <div class="popup-coords">📍 Location: ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div>
+                <b>🚥 ${c.name}</b><br>${c.desc}<br>
+                <div class="popup-coords">📍 ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div>
             `);
         });
 
-        // 6. Bus Stations & Travel Agencies Locations
+        // 6. Bus Stations & Travel Agencies
         const busStations = [
             { name: "Gare Routière Principale", lat: 5.5075, lng: 10.6320, details: "Main central taxi & minibus park" },
-            { name: "Musango Bus Terminal", lat: 5.5090, lng: 10.6300, details: "Inter-city travel agency (Buea, Douala, Yaoundé)" },
-            { name: "General Express Transit Stop", lat: 5.5060, lng: 10.6315, details: "Regional bus stop along Bafoussam - Foumban N6 highway" },
-            { name: "Gare Routière de Mangoum", lat: 5.4870, lng: 10.6140, details: "Local market bus and rural transport park" }
+            { name: "Musango Bus Terminal", lat: 5.5090, lng: 10.6300, details: "Inter-city travel agency" },
+            { name: "General Express Transit Stop", lat: 5.5060, lng: 10.6315, details: "Regional bus stop along N6" },
+            { name: "Gare Routière de Mangoum", lat: 5.4870, lng: 10.6140, details: "Local market bus park" }
         ];
 
         busStations.forEach(station => {
             L.marker([station.lat, station.lng])
                 .addTo(map)
                 .bindPopup(`
-                    <b>🚌 ${station.name}</b><br>
-                    ${station.details}<br>
-                    <div class="popup-coords">📍 Location: ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</div>
+                    <b>🚌 ${station.name}</b><br>${station.details}<br>
+                    <div class="popup-coords">📍 ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</div>
                 `);
         });
     </script>
