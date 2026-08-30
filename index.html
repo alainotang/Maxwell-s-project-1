@@ -42,6 +42,23 @@
             font-size: 12px;
             color: #666;
         }
+        .locate-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        .locate-btn:hover {
+            background: #0056b3;
+        }
         .popup-coords {
             font-size: 11px;
             color: #d9534f;
@@ -57,6 +74,8 @@
         <p>Quarters, Carrefours & Bus Stations</p>
     </div>
 
+    <button class="locate-btn" onclick="locateUser()">📍 Find My Location</button>
+
     <div id="map"></div>
 
     <!-- Leaflet JS -->
@@ -71,7 +90,42 @@
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // 3. Quarters (Cartiers) & Key Neighborhood Locations
+        // 3. User Geolocation Variables
+        let userMarker, userCircle;
+
+        function locateUser() {
+            map.locate({setView: true, maxZoom: 16});
+        }
+
+        function onLocationFound(e) {
+            const radius = e.accuracy / 2;
+
+            if (userMarker) {
+                map.removeLayer(userMarker);
+                map.removeLayer(userCircle);
+            }
+
+            userMarker = L.marker(e.latlng).addTo(map)
+                .bindPopup("<b> You are here!</b><br>Accuracy: " + Math.round(radius) + " meters").openPopup();
+
+            userCircle = L.circle(e.latlng, radius, {
+                color: '#1e90ff',
+                fillColor: '#1e90ff',
+                fillOpacity: 0.2
+            }).addTo(map);
+        }
+
+        function onLocationError(e) {
+            alert("Could not get your location. Please enable Location/GPS permission in your web browser settings.");
+        }
+
+        map.on('locationfound', onLocationFound);
+        map.on('locationerror', onLocationError);
+
+        // Automatically trigger location detection on load
+        locateUser();
+
+        // 4. Quarters (Cartiers) & Key Neighborhood Locations
         const quarters = [
             { name: "Foumbot Centre / Ville", lat: 5.5083, lng: 10.6308, desc: "Urban town center and main commercial strip" },
             { name: "Quartier Ngouongouo (Nhoungou)", lat: 5.5100, lng: 10.6280, desc: "Dense residential quarter in West Foumbot" },
@@ -102,7 +156,7 @@
             `);
         });
 
-        // 4. Major Carrefours (Key Intersections)
+        // 5. Major Carrefours (Key Intersections)
         const carrefours = [
             { name: "Carrefour Marché Central", lat: 5.5070, lng: 10.6312, desc: "Busy main junction by the central market" },
             { name: "Carrefour Sous-Préfecture", lat: 5.5042, lng: 10.6295, desc: "Administrative zone junction" },
@@ -129,7 +183,7 @@
             `);
         });
 
-        // 5. Bus Stations & Travel Agencies Locations
+        // 6. Bus Stations & Travel Agencies Locations
         const busStations = [
             { name: "Gare Routière Principale", lat: 5.5075, lng: 10.6320, details: "Main central taxi & minibus park" },
             { name: "Musango Bus Terminal", lat: 5.5090, lng: 10.6300, details: "Inter-city travel agency (Buea, Douala, Yaoundé)" },
