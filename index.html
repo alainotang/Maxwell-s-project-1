@@ -3,323 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Maxwell Damian Interactive Foumbot Map: Find Your Way In and Out</title>
+    <title>Maxwell Damian Interactive Foumbot Map</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet Routing Machine CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
-    
+
     <style>
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
         }
-        body, html {
-            height: 100%;
-            width: 100%;
+
+        body {
             font-family: Arial, sans-serif;
-        }
-        #map {
-            height: calc(100vh - 110px);
-            width: 100vw;
-            margin-top: 110px;
-        }
-        .header-banner {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 110px;
-            background: #1a252f;
-            color: #ffffff;
             display: flex;
             flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #2e7d32;
+            color: white;
+            padding: 12px;
+            text-align: center;
+        }
+
+        /* Filter control bar */
+        .filter-bar {
+            background: #ffffff;
+            display: flex;
             justify-content: center;
-            padding: 10px 15px;
-            z-index: 2000;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             gap: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            flex-wrap: wrap;
         }
-        .header-title {
-            font-size: 15px;
+
+        .filter-btn {
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            padding: 6px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
             font-weight: bold;
-            color: #f1c40f;
-            line-height: 1.2;
         }
-        .header-subtitle {
-            font-size: 11px;
-            color: #bdc3c7;
+
+        .filter-btn.active {
+            background: #2e7d32;
+            color: white;
+            border-color: #2e7d32;
         }
-        .controls-wrapper {
+
+        #map {
+            flex-grow: 1;
+            width: 100%;
+        }
+
+        /* Custom GPS Locate Button */
+        .gps-btn {
+            position: absolute;
+            bottom: 25px;
+            right: 15px;
+            z-index: 1000;
+            background: white;
+            border: 2px solid rgba(0,0,0,0.2);
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             display: flex;
             align-items: center;
-            gap: 6px;
-            width: 100%;
+            justify-content: center;
         }
-        .search-input {
-            padding: 8px 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-size: 12px;
-            outline: none;
-            flex-grow: 1;
-        }
-        .btn {
-            color: #fff;
-            border: none;
-            padding: 8px 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            font-size: 11px;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .locate-btn {
-            background: #27ae60;
-        }
-        .clear-btn {
-            background: #e74c3c;
-        }
-        .popup-coords {
-            font-size: 11px;
-            color: #e74c3c;
-            font-weight: bold;
-            margin-top: 4px;
-        }
-        .dir-btn {
-            margin-top: 8px;
-            padding: 6px 10px;
-            background: #2980b9;
-            color: #ffffff;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 12px;
-            cursor: pointer;
-            width: 100%;
-        }
-        .leaflet-routing-container {
-            font-size: 12px;
-            max-width: 260px;
-            background: #ffffff;
-            opacity: 0.95;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+
+        .gps-btn:active {
+            background-color: #e0e0e0;
         }
     </style>
 </head>
 <body>
 
-    <div class="header-banner">
-        <div>
-            <div class="header-title">Maxwell Damian Interactive Foumbot Map</div>
-            <div class="header-subtitle">Find Your Way In and Out</div>
-        </div>
-        <div class="controls-wrapper">
-            <input type="text" id="searchInput" class="search-input" placeholder="Search area or carrefour..." onkeyup="searchLocation()">
-            <button class="btn locate-btn" onclick="locateUser()">📍 My Location</button>
-            <button class="btn clear-btn" onclick="clearRoute()">❌ Clear</button>
-        </div>
-    </div>
+<header>
+    <h2>Maxwell Damian Interactive Foumbot Map</h2>
+</header>
 
-    <div id="map"></div>
+<div class="filter-bar">
+    <button class="filter-btn active" onclick="filterMarkers('all', this)">All</button>
+    <button class="filter-btn" onclick="filterMarkers('quarters', this)">Quarters</button>
+    <button class="filter-btn" onclick="filterMarkers('health', this)">Health</button>
+    <button class="filter-btn" onclick="filterMarkers('markets', this)">Markets</button>
+</div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <!-- Leaflet Routing Machine JS -->
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+<div id="map"></div>
+<button class="gps-btn" onclick="locateUser()" title="Find My Location">📍</button>
 
-    <script>
-        // Force HTTPS for GPS permissions
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-            location.replace(`https:${location.href.substring(location.protocol.length)}`);
-        }
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        // 1. Initialize map centered on Foumbot
-        const map = L.map('map').setView([5.5083, 10.6308], 13);
+<script>
+    // Initialize map centered on Foumbot
+    const map = L.map('map').setView([5.5080, 10.6280], 14);
 
-        // 2. Add OpenStreetMap Tiles
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
-        }).addTo(map);
+    // OpenStreetMap Tile Layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
 
-        const searchRegistry = [];
-        
-        // Default start point: Foumbot Town Centre (if GPS is off)
-        const defaultStart = L.latLng(5.5083, 10.6308);
-        let userLatLng = defaultStart;
+    // Custom Icons
+    const quarterIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/25/25694.png',
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -28]
+    });
 
-        // 3. Routing Control Setup
-        let routingControl = null;
+    const healthIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png',
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -28]
+    });
 
-        function drawRoute(targetLat, targetLng) {
-            if (routingControl) {
-                map.removeControl(routingControl);
+    const marketIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/1170/1170678.png',
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
+        popupAnchor: [0, -28]
+    });
+
+    // Store all markers with categories
+    const allMarkers = [];
+
+    function addPlace(lat, lng, name, type, description, icon) {
+        const marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+        marker.bindPopup(`
+            <div style="text-align:center;">
+                <h3 style="margin:0; color:#2e7d32;">${name}</h3>
+                <p style="margin:5px 0;">${description}</p>
+            </div>
+        `);
+        allMarkers.push({ instance: marker, category: type });
+    }
+
+    // Add Foumbot Quarters and Places
+    addPlace(5.5080, 10.6280, "Ngouongouo", "quarters", "Cartier Nhoungouo district.", quarterIcon);
+    addPlace(5.5120, 10.6310, "Cosba", "quarters", "Cosba neighborhood area.", quarterIcon);
+    addPlace(5.5030, 10.6220, "Mangoum", "quarters", "Mangoum quarter district.", quarterIcon);
+    addPlace(5.5150, 10.6250, "Musango", "quarters", "Musango area.", quarterIcon);
+    addPlace(5.5000, 10.6350, "Cimencam", "quarters", "Cimencam quarter district.", quarterIcon);
+
+    // Sample Health & Market locations
+    addPlace(5.5100, 10.6290, "Foumbot District Hospital", "health", "Main medical center in town.", healthIcon);
+    addPlace(5.5070, 10.6270, "Foumbot Main Market", "markets", "Central commercial market hub.", marketIcon);
+
+    // Filter Markers Function
+    function filterMarkers(category, btnElement) {
+        // Update active class on buttons
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+
+        // Show/hide markers
+        allMarkers.forEach(item => {
+            if (category === 'all' || item.category === category) {
+                map.addLayer(item.instance);
+            } else {
+                map.removeLayer(item.instance);
             }
-
-            const destination = L.latLng(targetLat, targetLng);
-
-            routingControl = L.Routing.control({
-                waypoints: [userLatLng, destination],
-                routeWhileDragging: true,
-                lineOptions: {
-                    styles: [{ color: '#0066ff', weight: 6, opacity: 0.8 }]
-                },
-                show: true,
-                collapsible: true,
-                createMarker: function(i, wp) {
-                    if (i === 0) {
-                        return L.marker(wp.latLng).bindPopup("<b>🚩 Route Start Point</b>");
-                    } else {
-                        return L.marker(wp.latLng).bindPopup("<b>🏁 Route Destination</b>");
-                    }
-                }
-            }).addTo(map);
-        }
-
-        function clearRoute() {
-            if (routingControl) {
-                map.removeControl(routingControl);
-                routingControl = null;
-            }
-        }
-
-        // 4. User Geolocation Handling
-        let userMarker, userCircle;
-
-        function locateUser() {
-            if ("geolocation" in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-                        const accuracy = position.coords.accuracy;
-                        userLatLng = L.latLng(lat, lng);
-
-                        if (userMarker) {
-                            map.removeLayer(userMarker);
-                            map.removeLayer(userCircle);
-                        }
-
-                        userMarker = L.marker([lat, lng]).addTo(map)
-                            .bindPopup(`<b>📍 You are here!</b><br>Accuracy radius: ${Math.round(accuracy)}m`).openPopup();
-
-                        userCircle = L.circle([lat, lng], {
-                            color: '#2980b9',
-                            fillColor: '#3498db',
-                            fillOpacity: 0.3,
-                            radius: accuracy
-                        }).addTo(map);
-
-                        map.setView([lat, lng], 16);
-                    },
-                    (error) => {
-                        alert("GPS access was not detected. The map will use Foumbot Town Centre as your starting point for directions.");
-                    },
-                    { enableHighAccuracy: true, timeout: 10000 }
-                );
-            }
-        }
-
-        locateUser();
-
-        // Helper function triggered by popup button
-        window.getDirectionsTo = function(targetLat, targetLng) {
-            drawRoute(targetLat, targetLng);
-        };
-
-        // 5. Quarters & Neighborhoods
-        const quarters = [
-            { name: "Foumbot Centre / Ville", lat: 5.5083, lng: 10.6308, desc: "Urban town center" },
-            { name: "Quartier Ngouongouo (Nhoungou)", lat: 5.5100, lng: 10.6280, desc: "Dense residential quarter in West Foumbot" },
-            { name: "Quartier Foumbot-Mancha", lat: 5.5120, lng: 10.6250, desc: "North-western residential zone" },
-            { name: "Quartier Koupara", lat: 5.4980, lng: 10.6350, desc: "Southern entry area along N6" },
-            { name: "Quartier Mangoum", lat: 5.4850, lng: 10.6120, desc: "Agricultural market hub area" },
-            { name: "Quartier Ngouen", lat: 5.5200, lng: 10.6400, desc: "North-east quarter" },
-            { name: "Quartier Kougham", lat: 5.5150, lng: 10.6150, desc: "Western district" },
-            { name: "Quartier Baigom", lat: 5.5350, lng: 10.6500, desc: "Outer northern village district" },
-            { name: "Quartier Fosset", lat: 5.4920, lng: 10.6220, desc: "South-western quarter" },
-            { name: "Quartier Njimbouot", lat: 5.5030, lng: 10.6340, desc: "Central-south neighborhood" },
-            { name: "Quartier Kompani", lat: 5.5250, lng: 10.6200, desc: "North-western district" },
-            { name: "Quartier Mbanjou", lat: 5.4950, lng: 10.6450, desc: "South-eastern neighborhood" },
-            { name: "Quartier Marché Central", lat: 5.5065, lng: 10.6310, desc: "Central trade market" },
-            { name: "Quartier Administrative", lat: 5.5040, lng: 10.6290, desc: "Sous-Préfecture and Town Hall" }
-        ];
-
-        quarters.forEach(q => {
-            const layer = L.circle([q.lat, q.lng], {
-                color: '#2980b9',
-                fillColor: '#3498db',
-                fillOpacity: 0.2,
-                radius: 350
-            }).addTo(map).bindPopup(`
-                <b>Quarter: ${q.name}</b><br>${q.desc}<br>
-                <div class="popup-coords">📍 ${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}</div>
-                <button class="dir-btn" onclick="getDirectionsTo(${q.lat}, ${q.lng})">🚗 Get Directions</button>
-            `);
-            searchRegistry.push({ name: q.name, lat: q.lat, lng: q.lng, layer: layer });
         });
+    }
 
-        // 6. Carrefours (Intersections)
-        const carrefours = [
-            { name: "Carrefour Marché Central", lat: 5.5070, lng: 10.6312, desc: "Main central junction" },
-            { name: "Carrefour Sous-Préfecture", lat: 5.5042, lng: 10.6295, desc: "Administrative junction" },
-            { name: "Carrefour Cimencam", lat: 5.5110, lng: 10.6290, desc: "Commercial strip junction" },
-            { name: "Carrefour Koupara (N6)", lat: 5.5000, lng: 10.6340, desc: "Southern entry intersection" },
-            { name: "Carrefour Mangoum", lat: 5.4880, lng: 10.6150, desc: "Agricultural trade junction" },
-            { name: "Carrefour Ngouongouo", lat: 5.5095, lng: 10.6275, desc: "Ngouongouo quarter junction" },
-            { name: "Carrefour Hospital / Santé", lat: 5.5055, lng: 10.6270, desc: "District hospital junction" },
-            { name: "Carrefour Station Total / N6", lat: 5.5085, lng: 10.6325, desc: "Highway fuel station junction" }
-        ];
+    // Live GPS Location Tracker
+    let userLocationMarker = null;
 
-        carrefours.forEach(c => {
-            const layer = L.circleMarker([c.lat, c.lng], {
-                radius: 8,
-                fillColor: "#e67e22",
-                color: "#d35400",
-                weight: 2,
-                fillOpacity: 0.9
-            }).addTo(map).bindPopup(`
-                <b>🚥 ${c.name}</b><br>${c.desc}<br>
-                <div class="popup-coords">📍 ${c.lat.toFixed(4)}, ${c.lng.toFixed(4)}</div>
-                <button class="dir-btn" onclick="getDirectionsTo(${c.lat}, ${c.lng})">🚗 Get Directions</button>
-            `);
-            searchRegistry.push({ name: c.name, lat: c.lat, lng: c.lng, layer: layer });
-        });
+    function locateUser() {
+        map.locate({ setView: true, maxZoom: 16 });
+    }
 
-        // 7. Bus Stations & Travel Agencies
-        const busStations = [
-            { name: "Gare Routière Principale", lat: 5.5075, lng: 10.6320, details: "Main central taxi & minibus park" },
-            { name: "Musango Bus Terminal", lat: 5.5090, lng: 10.6300, details: "Inter-city travel agency" },
-            { name: "General Express Transit Stop", lat: 5.5060, lng: 10.6315, details: "Regional bus stop along N6" },
-            { name: "Gare Routière de Mangoum", lat: 5.4870, lng: 10.6140, details: "Local market bus park" }
-        ];
-
-        busStations.forEach(station => {
-            const layer = L.marker([station.lat, station.lng])
-                .addTo(map)
-                .bindPopup(`
-                    <b>🚌 ${station.name}</b><br>${station.details}<br>
-                    <div class="popup-coords">📍 ${station.lat.toFixed(4)}, ${station.lng.toFixed(4)}</div>
-                    <button class="dir-btn" onclick="getDirectionsTo(${station.lat}, ${station.lng})">🚗 Get Directions</button>
-                `);
-            searchRegistry.push({ name: station.name, lat: station.lat, lng: station.lng, layer: layer });
-        });
-
-        // Search Function
-        function searchLocation() {
-            const query = document.getElementById('searchInput').value.toLowerCase().trim();
-            if (!query) return;
-
-            const match = searchRegistry.find(item => item.name.toLowerCase().includes(query));
-            if (match) {
-                map.setView([match.lat, match.lng], 16);
-                match.layer.openPopup();
-            }
+    map.on('locationfound', function(e) {
+        if (userLocationMarker) {
+            map.removeLayer(userLocationMarker);
         }
-    </script>
+        userLocationMarker = L.circleMarker(e.latlng, {
+            radius: 8,
+            fillColor: "#0288d1",
+            color: "#ffffff",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.9
+        }).addTo(map).bindPopup("<b>You are here!</b>").openPopup();
+    });
+
+    map.on('locationerror', function() {
+        alert("Unable to find your location. Please make sure location services are turned on.");
+    });
+</script>
+
 </body>
 </html>
